@@ -1,0 +1,17 @@
+{
+  "overrides": {},
+  "additions": [
+    {
+      "id": "ebdc296c-c06",
+      "left_table": "procedures",
+      "left_column": "BASE_COST",
+      "right_table": "payers",
+      "right_column": "CITY",
+      "confidence": 1.0,
+      "match_type": "manual",
+      "value_overlap": 0.0,
+      "source": "manual"
+    }
+  ],
+  "deletions": []
+}

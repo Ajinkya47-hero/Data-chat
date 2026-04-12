@@ -1,0 +1,18 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Environment variables (API keys)
+.env
+backend/.env
+
+# File-based storage
+backend/workspaces/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

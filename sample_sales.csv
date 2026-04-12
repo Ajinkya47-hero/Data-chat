@@ -1,0 +1,6 @@
+date,product,sales,region
+2023-01-01,Widget A,150.00,North
+2023-01-02,Widget B,200.00,South
+2023-01-03,Widget A,120.00,East
+2023-01-04,Widget C,330.00,West
+2023-01-05,Widget B,210.00,North

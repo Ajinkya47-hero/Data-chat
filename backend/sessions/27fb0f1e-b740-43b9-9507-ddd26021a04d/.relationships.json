@@ -1,0 +1,13 @@
+{
+  "overrides": {
+    "b2bd2c031c91": {
+      "left_table": "patients",
+      "left_column": "FIRST",
+      "right_table": "payers",
+      "right_column": "NAME",
+      "match_type": "manual_edit"
+    }
+  },
+  "additions": [],
+  "deletions": []
+}

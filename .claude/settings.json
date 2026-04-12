@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m json.tool)",
+      "Bash(curl -s \"http://localhost:8000/dataset/preview?session_id=4f682c09-0c32-41d4-af57-9f49e337c93c\")",
+      "Bash(xargs wc:*)",
+      "Bash(grep -n \"all_rows\\\\|preview\\\\|getPreview\" \"c:/Users/acer/Desktop/Project/Data chat/backend/routers/\"*.py)"
+    ]
+  }
+}
