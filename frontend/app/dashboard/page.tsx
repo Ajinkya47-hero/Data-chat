@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { getPreview, getWorkspace, getAnalysis, createAnalysis, renameAnalysis, deleteAnalysis } from "@/lib/api";
+import { getPreview, getWorkspace, getAnalysis, createAnalysis, renameAnalysis, deleteAnalysis, deleteDataset } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import DataPreview from "@/components/DataPreview";
 import ChatPanel from "@/components/ChatPanel";
@@ -211,6 +211,28 @@ export default function Dashboard() {
     if (!primaryDataset && newList.length > 0) {
       setPrimaryDataset(newList[0].name);
       setSelectedDatasets([newList[0].name]);
+    }
+  };
+
+  const handleDeleteDataset = async (name: string) => {
+    try {
+      const res = await deleteDataset(workspaceId, activeAnalysisId, name);
+      const newList: DatasetMeta[] = res.data.datasets ?? [];
+      setDatasets(newList);
+      setAnalyses((prev) =>
+        prev.map((a) => a.id === activeAnalysisId ? { ...a, datasets: newList, dataset_count: newList.length } : a)
+      );
+      // Fix selection if deleted dataset was selected/primary
+      const remaining = newList.map((d) => d.name);
+      if (name === primaryDataset) {
+        setPrimaryDataset(remaining[0] ?? "");
+      }
+      setSelectedDatasets((prev) => {
+        const next = prev.filter((n) => remaining.includes(n));
+        return next.length > 0 ? next : remaining.slice(0, 1);
+      });
+    } catch {
+      // silently fail — dataset may already be gone
     }
   };
 
@@ -587,6 +609,7 @@ export default function Dashboard() {
                     onSelectionChange={handleSelectionChange}
                     onSetPrimary={handleSetPrimary}
                     onUploadMore={() => setAddDatasetOpen(true)}
+                    onDeleteDataset={handleDeleteDataset}
                   />
                 )}
                 {panelView === "schema" && (

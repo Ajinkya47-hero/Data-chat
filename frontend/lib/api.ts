@@ -56,6 +56,9 @@ export const getPreview = async (workspaceId: string, analysisId: string, datase
 export const listDatasets = async (workspaceId: string, analysisId: string) =>
   api.get(`/dataset/list?workspace_id=${workspaceId}&analysis_id=${analysisId}`);
 
+export const deleteDataset = async (workspaceId: string, analysisId: string, dataset: string) =>
+  api.delete(`/dataset/dataset?workspace_id=${workspaceId}&analysis_id=${analysisId}&dataset=${encodeURIComponent(dataset)}`);
+
 export const getRows = async (
   workspaceId: string,
   analysisId: string,

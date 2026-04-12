@@ -2,7 +2,7 @@ import uuid as uuid_mod
 from fastapi import APIRouter, HTTPException
 from typing import Optional
 from services.data_store import (
-    get_dataset, get_first_dataset, list_datasets,
+    get_dataset, get_first_dataset, list_datasets, delete_dataset,
     make_rel_id, load_rel_overrides, save_rel_overrides,
 )
 from services.health_check import analyze_dataset_health
@@ -10,6 +10,15 @@ from services.relationship_detector import detect_relationships
 from models.schemas import PreviewResponse, RelationshipCreate, RelationshipUpdate
 
 router = APIRouter()
+
+
+@router.delete("/dataset")
+async def remove_dataset(workspace_id: str, analysis_id: str, dataset: str):
+    try:
+        delete_dataset(workspace_id, analysis_id, dataset)
+    except KeyError as e:
+        raise HTTPException(404, str(e))
+    return {"deleted": dataset, "datasets": list_datasets(workspace_id, analysis_id)}
 
 
 @router.get("/preview", response_model=PreviewResponse)

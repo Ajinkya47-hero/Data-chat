@@ -49,6 +49,7 @@ interface DatasetManagerProps {
   onSelectionChange: (selected: string[]) => void;
   onSetPrimary: (name: string) => void;
   onUploadMore: () => void;
+  onDeleteDataset?: (name: string) => void;
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -460,6 +461,7 @@ export default function DatasetManager({
   onSelectionChange,
   onSetPrimary,
   onUploadMore,
+  onDeleteDataset,
 }: DatasetManagerProps) {
   const allSelected = datasets.every((d) => selectedDatasets.includes(d.name));
 
@@ -599,16 +601,34 @@ export default function DatasetManager({
                 <ColumnPills columns={ds.columns} />
               </div>
 
-              {/* Set as preview */}
-              {isSelected && !isPrimary && (
-                <button
-                  onClick={() => onSetPrimary(ds.name)}
-                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 border-t border-neutral-100 text-[11px] font-bold text-neutral-500 hover:text-primary hover:bg-primary/5 rounded-b-2xl transition-colors"
-                >
-                  Set as preview dataset
-                  <ChevronRight className="w-3 h-3" />
-                </button>
-              )}
+              {/* Actions */}
+              <div className="flex items-center border-t border-neutral-100">
+                {isSelected && !isPrimary && (
+                  <button
+                    onClick={() => onSetPrimary(ds.name)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-neutral-500 hover:text-primary hover:bg-primary/5 transition-colors"
+                  >
+                    Set as preview dataset
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                )}
+                {onDeleteDataset && datasets.length > 1 && (
+                  <button
+                    onClick={() => {
+                      if (confirm(`Delete "${ds.name}"? This cannot be undone.`)) {
+                        onDeleteDataset(ds.name);
+                      }
+                    }}
+                    title="Delete dataset"
+                    className={`flex items-center justify-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors ${
+                      isSelected && !isPrimary ? "border-l border-neutral-100" : "flex-1"
+                    }`}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Delete
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}

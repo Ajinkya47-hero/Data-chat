@@ -386,6 +386,14 @@ def get_first_dataset(workspace_id: str, analysis_id: str) -> tuple[str, pd.Data
     return name, get_dataset(workspace_id, analysis_id, name)
 
 
+def delete_dataset(workspace_id: str, analysis_id: str, name: str) -> None:
+    """Remove a single dataset file from an analysis."""
+    path = _dataset_path(workspace_id, analysis_id, name)
+    if not path.exists():
+        raise KeyError(f"Dataset '{name}' not found in analysis {analysis_id}")
+    path.unlink()
+
+
 # ── Delete / Purge ─────────────────────────────────────────────────────────────
 
 def _delete_workspace(workspace_id: str) -> None:
