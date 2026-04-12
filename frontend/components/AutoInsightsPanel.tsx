@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { analyzeData } from "@/lib/api";
 import { Sparkles, X, RefreshCw, AlertCircle, MessageSquare, Copy, Check } from "lucide-react";
+import { trackInsightGenerated } from "@/lib/analytics";
 
 interface InsightItem {
   title: string;
@@ -151,6 +152,7 @@ export default function AutoInsightsPanel({
     setLoading(true);
     setError(null);
     setInsights([]);
+    const startTime = Date.now();
     try {
       const res = await analyzeData(workspaceId, analysisId, dataset, model, selectedDatasets);
       const items: InsightItem[] = res.data.insights ?? [];
@@ -158,6 +160,11 @@ export default function AutoInsightsPanel({
       if (res.data.throttled) setThrottled(true);
       setRan(true);
       onInsightsLoaded?.(items);
+      trackInsightGenerated({
+        analysis_id: analysisId,
+        response_time_ms: Date.now() - startTime,
+        insight_count: items.length,
+      });
     } catch (err: any) {
       const raw: string =
         err?.response?.data?.detail ??

@@ -6,6 +6,11 @@ from dotenv import load_dotenv
 # Load env vars first
 load_dotenv()
 
+import posthog
+
+posthog.project_api_key = os.environ.get("POSTHOG_API_KEY")
+posthog.host = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
+
 from routers import upload, preview, chat, insights, workspace, analysis
 
 app = FastAPI(title="DataChat MVP API")

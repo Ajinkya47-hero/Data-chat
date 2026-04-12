@@ -1,0 +1,18 @@
+Defaulting to user installation because normal site-packages is not writeable
+Collecting posthog
+  Downloading posthog-7.11.0-py3-none-any.whl.metadata (6.2 kB)
+Requirement already satisfied: requests<3.0,>=2.7 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.12_qbz5n2kfra8p0\localcache\local-packages\python312\site-packages (from posthog) (2.33.1)
+Requirement already satisfied: six>=1.5 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.12_qbz5n2kfra8p0\localcache\local-packages\python312\site-packages (from posthog) (1.17.0)
+Requirement already satisfied: python-dateutil>=2.2 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.12_qbz5n2kfra8p0\localcache\local-packages\python312\site-packages (from posthog) (2.9.0.post0)
+Collecting backoff>=1.10.0 (from posthog)
+  Downloading backoff-2.2.1-py3-none-any.whl.metadata (14 kB)
+Requirement already satisfied: distro>=1.5.0 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.12_qbz5n2kfra8p0\localcache\local-packages\python312\site-packages (from posthog) (1.9.0)
+Requirement already satisfied: typing-extensions>=4.2.0 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.12_qbz5n2kfra8p0\localcache\local-packages\python312\site-packages (from posthog) (4.15.0)
+Requirement already satisfied: charset_normalizer<4,>=2 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.12_qbz5n2kfra8p0\localcache\local-packages\python312\site-packages (from requests<3.0,>=2.7->posthog) (3.4.7)
+Requirement already satisfied: idna<4,>=2.5 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.12_qbz5n2kfra8p0\localcache\local-packages\python312\site-packages (from requests<3.0,>=2.7->posthog) (3.11)
+Requirement already satisfied: urllib3<3,>=1.26 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.12_qbz5n2kfra8p0\localcache\local-packages\python312\site-packages (from requests<3.0,>=2.7->posthog) (2.6.3)
+Requirement already satisfied: certifi>=2023.5.7 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.12_qbz5n2kfra8p0\localcache\local-packages\python312\site-packages (from requests<3.0,>=2.7->posthog) (2026.2.25)
+Downloading posthog-7.11.0-py3-none-any.whl (219 kB)
+Downloading backoff-2.2.1-py3-none-any.whl (15 kB)
+Installing collected packages: backoff, posthog
+Successfully installed backoff-2.2.1 posthog-7.11.0

@@ -5,6 +5,7 @@ import ChatInput from "./ChatInput";
 import InsightCard from "./InsightCard";
 import { sendChatQuery } from "@/lib/api";
 import { ChevronDown } from "lucide-react";
+import { trackAskQuestion, trackChatResponse, trackChatError } from "@/lib/analytics";
 
 // ── Model registry ─────────────────────────────────────────────────────────
 
@@ -162,6 +163,9 @@ export default function ChatPanel({
     const userMessage: Message = { id: Date.now().toString(), role: "user", content: question };
     setMessages((prev) => [...prev, userMessage]);
     setLoading(true);
+    const sendStart = Date.now();
+
+    trackAskQuestion({ question, analysis_id: analysisId, model });
 
     try {
       const history = messages
@@ -169,6 +173,13 @@ export default function ChatPanel({
         .map((m) => ({ role: m.role, content: m.content }));
 
       const res = await sendChatQuery(workspaceId, analysisId, primaryDataset, question, history, model, selectedDatasets);
+
+      trackChatResponse({
+        analysis_id: analysisId,
+        response_time_ms: Date.now() - sendStart,
+        has_chart: !!res.data.chart,
+        model,
+      });
 
       if (res.data.throttled) setThrottled(true);
       setMessages((prev) => [
@@ -187,6 +198,8 @@ export default function ChatPanel({
     } catch (err: any) {
       const status = err.response?.status;
       const detail = err.response?.data?.detail || err.message;
+      const errorType = status === 429 ? "quota_exceeded" : status === 503 ? "model_busy" : "error";
+      trackChatError({ analysis_id: analysisId, error_type: errorType, model });
 
       if (status === 429) {
         markQuotaExceeded(model);

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 import pandas as pd
+import posthog
 import io
 import re
 from pathlib import Path
@@ -150,6 +151,13 @@ async def upload_csv(
     except ValueError as e:
         raise HTTPException(409, str(e))
 
+    posthog.capture(wid, "upload_dataset", {
+        "dataset_name": dataset_name,
+        "number_of_rows": len(df),
+        "number_of_columns": len(df.columns),
+        "source": "csv",
+    })
+
     return _build_response(wid, aid, aname, dataset_name)
 
 
@@ -188,5 +196,12 @@ async def upload_gsheet(
         save_dataset(wid, aid, dataset_name, df)
     except ValueError as e:
         raise HTTPException(409, str(e))
+
+    posthog.capture(wid, "upload_dataset", {
+        "dataset_name": dataset_name,
+        "number_of_rows": len(df),
+        "number_of_columns": len(df.columns),
+        "source": "gsheet",
+    })
 
     return _build_response(wid, aid, aname, dataset_name)

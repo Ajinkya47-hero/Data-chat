@@ -1,3 +1,5 @@
+import time
+import posthog
 from fastapi import APIRouter, HTTPException
 
 from models.schemas import InsightRequest, InsightResponse, InsightItem
@@ -58,6 +60,7 @@ async def analyze(req: InsightRequest):
     relationships = _get_relationships(req.workspace_id, req.analysis_id, all_tables)
 
     # ── Generate insights ────────────────────────────────────────────────────
+    t0 = time.monotonic()
     try:
         raw_insights = await generate_insights(
             tables=all_tables,
@@ -75,6 +78,14 @@ async def analyze(req: InsightRequest):
 
     if not raw_insights:
         raise HTTPException(500, "The model did not return any insights. Please try again.")
+
+    elapsed_ms = int((time.monotonic() - t0) * 1000)
+    posthog.capture(req.workspace_id, "insight_generated", {
+        "analysis_id": req.analysis_id,
+        "insight_count": len(raw_insights),
+        "response_time_ms": elapsed_ms,
+        "model": req.model,
+    })
 
     # Persist insights — best-effort
     try:

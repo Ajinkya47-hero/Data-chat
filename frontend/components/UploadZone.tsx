@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { uploadCsv, uploadGsheet } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { identifySession, trackUploadDataset, trackCreateAnalysis } from "@/lib/analytics";
 import {
   FileUp, Link as LinkIcon, LoaderCircle,
   CheckCircle2, Plus, ArrowRight, Table2, X,
@@ -31,12 +32,29 @@ export default function UploadZone() {
   const handleUploadResult = (data: any) => {
     const wid: string = data.workspace_id;
     const aid: string = data.analysis_id;
+    const isNewAnalysis = !currentAnalysisId || currentAnalysisId !== aid;
+
     setWorkspaceId(wid);
     localStorage.setItem("workspace_id", wid);
     localStorage.setItem("active_analysis_id", aid);
     setCurrentAnalysisId(aid);
     setAnalysisName(data.analysis_name ?? "Analysis");
     setDatasets(data.datasets ?? []);
+
+    // Analytics
+    identifySession(wid);
+    if (isNewAnalysis) {
+      trackCreateAnalysis({ analysis_id: aid, analysis_name: data.analysis_name ?? "Analysis" });
+    }
+    const uploaded = data.uploaded as string | undefined;
+    const ds = (data.datasets ?? []).find((d: any) => d.name === uploaded);
+    if (ds) {
+      trackUploadDataset({
+        dataset_name: ds.name,
+        number_of_rows: ds.row_count,
+        number_of_columns: ds.column_count,
+      });
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {

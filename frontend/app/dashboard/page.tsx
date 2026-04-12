@@ -14,6 +14,7 @@ import {
 import AutoInsightsPanel from "@/components/AutoInsightsPanel";
 import SchemaMap from "@/components/SchemaMap";
 import AddDatasetModal from "@/components/AddDatasetModal";
+import { trackSwitchAnalysis, trackShareAnalysis, trackSessionRestored } from "@/lib/analytics";
 
 type PanelView = "preview" | "datasets" | "schema";
 
@@ -77,6 +78,7 @@ export default function Dashboard() {
         const list: AnalysisMeta[] = res.data.analyses ?? [];
         if (list.length === 0) { router.push("/upload"); return; }
         setAnalyses(list);
+        trackSessionRestored();
         // Respect active_analysis_id set by a share-link restore
         const targetId = localStorage.getItem("active_analysis_id");
         localStorage.removeItem("active_analysis_id");
@@ -180,6 +182,7 @@ export default function Dashboard() {
     setSwitchingId(id);
     setActiveAnalysisId(id);
     setOpenMenuId(null);
+    trackSwitchAnalysis({ analysis_id: id });
   };
 
   const handleSetPrimary = (name: string) => {
@@ -197,6 +200,7 @@ export default function Dashboard() {
 
   const handleShareAnalysis = (analysisId: string) => {
     setShareAnalysisId(analysisId);
+    trackShareAnalysis({ analysis_id: analysisId });
   };
 
   const handleAddDatasetSuccess = (newList: DatasetMeta[]) => {
