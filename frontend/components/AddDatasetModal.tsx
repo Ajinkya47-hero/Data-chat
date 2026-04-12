@@ -7,25 +7,18 @@ import {
   X, FileUp, Link as LinkIcon, LoaderCircle,
   CheckCircle2, Table2, Plus, AlertCircle, Upload,
 } from "lucide-react";
-
-interface UploadedEntry {
-  name: string;
-  row_count: number;
-  column_count: number;
-  columns: string[];
-  size_mb?: number;
-}
+import type { DatasetMeta } from "./DatasetManager";
 
 interface AddDatasetModalProps {
   workspaceId: string;
   analysisId: string;
   onClose: () => void;
   /** Called after every successful upload with the latest full dataset list */
-  onSuccess: (datasets: UploadedEntry[]) => void;
+  onSuccess: (datasets: DatasetMeta[]) => void;
 }
 
 export default function AddDatasetModal({ workspaceId, analysisId, onClose, onSuccess }: AddDatasetModalProps) {
-  const [uploaded, setUploaded] = useState<UploadedEntry[]>([]);
+  const [uploaded, setUploaded] = useState<DatasetMeta[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [sheetUrl, setSheetUrl] = useState("");
@@ -40,7 +33,7 @@ export default function AddDatasetModal({ workspaceId, analysisId, onClose, onSu
   }, [onClose]);
 
   const handleResult = (data: any) => {
-    const list: UploadedEntry[] = data.datasets;
+    const list: DatasetMeta[] = data.datasets;
     setUploaded((prev) => {
       // Merge: keep prev entries not returned, add/update returned ones
       const map = new Map(prev.map((d) => [d.name, d]));
