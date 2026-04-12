@@ -80,7 +80,7 @@ async def analyze(req: InsightRequest):
         raise HTTPException(500, "The model did not return any insights. Please try again.")
 
     elapsed_ms = int((time.monotonic() - t0) * 1000)
-    posthog.capture(req.workspace_id, "insight_generated", {
+    posthog.capture(distinct_id=req.workspace_id, event="insight_generated", properties={
         "analysis_id": req.analysis_id,
         "insight_count": len(raw_insights),
         "response_time_ms": elapsed_ms,
