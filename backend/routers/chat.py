@@ -4,7 +4,7 @@ from services.data_store import (
     get_dataset, get_first_dataset, load_rel_overrides, make_rel_id,
     save_chat_message, touch_workspace,
 )
-from services.query_engine import build_prompt, call_llm, generate_final_answer
+from services.query_engine import build_prompt, call_llm, generate_final_answer, SYSTEM_PROMPT
 from services.rate_limiter import session_throttler
 from services.relationship_detector import detect_relationships
 from services.duckdb_exec import duckdb_exec
@@ -288,27 +288,52 @@ async def chat_query(req: ChatRequest):
         _persist(req.workspace_id, req.analysis_id, req.question, no_sql_resp)
         return no_sql_resp
 
-    # ── Execute SQL via DuckDB ────────────────────────────────────────────────
-    try:
-        exec_result = duckdb_exec(
-            sql=sql,
-            tables=all_tables,
-            relationships=relationships or None,
-        )
-    except ValueError as e:
+    # ── Execute SQL via DuckDB (with one retry on syntax errors) ────────────────
+    exec_result = None
+    exec_error = None
+    used_sql = sql
+
+    for attempt in range(2):
+        try:
+            exec_result = duckdb_exec(
+                sql=used_sql,
+                tables=all_tables,
+                relationships=relationships or None,
+            )
+            break  # success
+        except (ValueError, RuntimeError) as e:
+            exec_error = str(e)
+            if attempt == 0:
+                # Ask the LLM to fix its own SQL using the error message
+                fix_messages = [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": (
+                        f"{schema_ctx}\n\n"
+                        f"Question: '{req.question}'\n\n"
+                        f"The following SQL query failed:\n{used_sql}\n\n"
+                        f"Error: {exec_error}\n\n"
+                        f"Write a corrected SQL query. Remember to double-quote column names that contain spaces or special characters."
+                    )},
+                ]
+                try:
+                    fix_resp = await call_llm(fix_messages, model=req.model)
+                    fixed_sql = fix_resp.get("query")
+                    if fixed_sql and fixed_sql != used_sql:
+                        used_sql = fixed_sql
+                        continue  # retry with fixed SQL
+                except Exception:
+                    pass
+                break  # give up if fix failed
+
+    if exec_result is None:
         return ChatResponse(
-            answer=f"The generated query was rejected: {e}",
+            answer="I couldn't process that query on your data. Could you try rephrasing your question? For example, be specific about which columns or values you're interested in.",
             insight="",
-            code_used=sql,
-            follow_up=[],
-            throttled=is_throttled,
-        )
-    except RuntimeError as e:
-        return ChatResponse(
-            answer="I ran into an issue executing the query. Please try rephrasing your question.",
-            insight=f"Query error: {e}",
-            code_used=sql,
-            follow_up=[],
+            follow_up=[
+                f"What columns are available in my data?",
+                f"Show me a summary of the dataset",
+                f"What are the top 5 rows?",
+            ],
             throttled=is_throttled,
         )
 
