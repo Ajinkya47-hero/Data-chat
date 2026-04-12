@@ -446,7 +446,7 @@ function UseCases() {
 // ─── Comparison ───────────────────────────────────────────────────────────────
 
 function Comparison() {
-  const rows = [
+  const rows: { feature: string; excel: boolean | "partial"; bi: boolean | "partial"; us: boolean | "partial" }[] = [
     { feature: "Analyze multiple datasets together", excel: false, bi: "partial", us: true },
     { feature: "Auto-detect relationships between files", excel: false, bi: false, us: true },
     { feature: "Ask questions in natural language", excel: false, bi: false, us: true },
