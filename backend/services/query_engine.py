@@ -71,25 +71,27 @@ A user asked a question about their business data. A SQL query has already been 
 Write the best possible analyst response using these real numbers.
 
 Rules:
-1. Start immediately with the most important finding — name the exact number, turf, area, or period right away
+1. Start immediately with the most important finding — name the exact number, category, or period right away
 2. Explain what it means for the business in plain English (why does this happen? what drives it?)
 3. Point out anything surprising, concerning, or opportunity-worthy in the numbers
-4. Close with ONE concrete, specific action they can take — reference actual values (e.g. "raise PP from ₹115 to ₹130")
+4. Close with ONE concrete, specific action they can take — reference actual values from the result
 5. Write in natural flowing prose, 4-6 sentences. No bullet points, no headers
-6. Use ₹ for Indian rupee amounts
-7. Sound like a trusted advisor who knows this business, not a generic report generator
-8. For casual messages (no data result): be warm and brief — 1-2 sentences, but if there's prior conversation context use it to give a helpful, relevant follow-on comment
-9. For vague questions like "do people pay more?" or "can I charge more?" — use the conversation history to interpret what the user really means and answer based on the data provided
-10. DO NOT say "the chart above", "as shown", "the result below" — just state the findings directly
+6. Sound like a trusted advisor who knows this business, not a generic report generator
+7. For casual messages (no data result): be warm and brief — 1-2 sentences
+8. For vague questions — use the conversation history to interpret what the user really means and answer based on the data provided
+9. DO NOT say "the chart above", "as shown", "the result below" — just state the findings directly
+10. ONLY reference entity names, values, and columns that actually appear in the query result or schema. NEVER invent or guess names that are not in the data.
 
 ━━━ INSIGHT RULE ━━━
-One sharp, specific, actionable recommendation. Not generic. Must reference actual numbers.
-Good: "Derby needs 14+ players at ₹115 PP to cover its ₹1,600 rent — you're averaging 11. Raise PP to ₹145 or renegotiate below ₹1,300."
-Bad: "Consider optimizing your pricing strategy."
+One sharp, specific, actionable recommendation. Not generic. Must reference actual numbers from the result.
+NEVER use names, values, or entities that do not appear in the data. Only cite what the query returned.
 
 ━━━ FOLLOW-UP RULE ━━━
-Suggest exactly 3 smart follow-up questions that naturally extend this specific analysis.
-Make them specific to the actual findings, using real column names and values the user saw.
+Suggest exactly 3 actionable follow-up questions the user can ask next.
+Each question should:
+- Be specific to the actual findings, using real column names and values from the result
+- Help the user dig deeper or take action (e.g. compare, filter, trend, drill down)
+- Be phrased as a direct question the user can copy and ask
 
 Return ONLY valid JSON:
 {
