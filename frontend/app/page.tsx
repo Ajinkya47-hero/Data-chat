@@ -456,7 +456,7 @@ function Comparison() {
     { feature: "Works in minutes (no setup)", excel: true, bi: false, us: true },
   ];
 
-  const Cell = ({ value }: { value: boolean | "partial" }) => {
+  const Cell = ({ value }: { value: boolean | string }) => {
     if (value === true) return <CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto" />;
     if (value === "partial") return <div className="w-5 h-5 rounded-full bg-yellow-200 border-2 border-yellow-400 mx-auto" />;
     return <XCircle className="w-5 h-5 text-neutral-300 mx-auto" />;
