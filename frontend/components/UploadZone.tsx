@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { uploadCsv, uploadGsheet } from "@/lib/api";
+import { uploadCsv } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { identifySession, trackUploadDataset, trackCreateAnalysis } from "@/lib/analytics";
 import {
-  FileUp, Link as LinkIcon, LoaderCircle,
-  CheckCircle2, Plus, ArrowRight, Table2, X,
+  FileUp, LoaderCircle, Lock,
+  CheckCircle2, Plus, ArrowRight, Table2, X, Sparkles,
 } from "lucide-react";
 
 interface DatasetEntry {
@@ -24,7 +24,6 @@ export default function UploadZone() {
   const [analysisName, setAnalysisName] = useState<string>("");
   const [datasets, setDatasets] = useState<DatasetEntry[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [sheetUrl, setSheetUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -81,37 +80,18 @@ export default function UploadZone() {
     }
   };
 
-  const handleGsheetSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!sheetUrl) return;
-    setError(null);
-    setUploading(true);
-    try {
-      // Reuse the same analysis as CSV uploads in this session
-      const res = await uploadGsheet(sheetUrl, workspaceId ?? undefined, currentAnalysisId ?? undefined);
-      handleUploadResult(res.data);
-      setSheetUrl("");
-    } catch (err: any) {
-      setError(err.response?.data?.detail || err.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const hasUploads = datasets.length > 0;
 
   return (
-    <div className="w-full max-w-2xl mx-auto glass rounded-[3rem] p-1.5 animate-in">
-      <div className="bg-white/40 backdrop-blur-md rounded-[2.8rem] border border-white/40 p-10 md:p-14">
+    <div className="w-full max-w-2xl mx-auto glass rounded-2xl md:rounded-[3rem] p-1 md:p-1.5 animate-in">
+      <div className="bg-white/40 backdrop-blur-md rounded-xl md:rounded-[2.8rem] border border-white/40 p-6 md:p-14">
 
         <header className="text-center mb-10">
           <h2 className="text-3xl font-black text-neutral-900 tracking-tight mb-3">
-            {hasUploads ? analysisName : "Connect your Data"}
+            Connect your Data
           </h2>
           <p className="text-neutral-500 font-medium">
-            {hasUploads
-              ? "Add more files to this analysis or open the dashboard."
-              : "Upload CSV files — all files are combined into one analysis."}
+            Upload CSV files — all files are combined into one analysis.
           </p>
         </header>
 
@@ -133,13 +113,20 @@ export default function UploadZone() {
                 <span className="ml-auto text-[11px] text-neutral-400 shrink-0">
                   {ds.row_count.toLocaleString()} rows · {ds.column_count} cols
                 </span>
+                <button
+                  onClick={() => setDatasets((prev) => prev.filter((d) => d.name !== ds.name))}
+                  title="Remove"
+                  className="w-5 h-5 flex items-center justify-center rounded-md text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
+                >
+                  <X className="w-3 h-3" />
+                </button>
               </div>
             ))}
           </div>
         )}
 
         {/* CSV Upload Drop Zone */}
-        <div className="relative group p-10 border-2 border-dashed border-neutral-200 rounded-[2.5rem] hover:border-primary/40 transition-all hover:bg-white/50 hover:shadow-xl hover:shadow-primary/5 cursor-pointer mb-6">
+        <div className="relative group p-6 md:p-10 border-2 border-dashed border-neutral-200 rounded-2xl md:rounded-[2.5rem] hover:border-primary/40 transition-all hover:bg-white/50 hover:shadow-xl hover:shadow-primary/5 cursor-pointer mb-6">
           <input
             ref={fileInputRef}
             type="file"
@@ -171,40 +158,26 @@ export default function UploadZone() {
           </div>
         </div>
 
-        {/* Google Sheet */}
-        <form onSubmit={handleGsheetSubmit} className="flex gap-3 mb-8">
-          <div className="relative flex-1 group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-lg shadow-sm flex items-center justify-center border border-neutral-100 group-focus-within:border-primary/30 transition-colors">
-              <LinkIcon className="w-3 h-3 text-neutral-400 group-focus-within:text-primary transition-colors" />
-            </div>
-            <input
-              type="url"
-              value={sheetUrl}
-              onChange={(e) => setSheetUrl(e.target.value)}
-              placeholder="Google Sheets link"
-              disabled={uploading}
-              className="w-full pl-12 pr-4 py-3.5 bg-white/50 border border-neutral-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary/30 focus:bg-white outline-none transition-all font-medium text-neutral-700 placeholder:text-neutral-300 shadow-sm text-sm"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={!sheetUrl || uploading}
-            className="px-6 py-3.5 bg-neutral-900 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-black disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg active:scale-95"
-          >
-            Connect
-          </button>
-        </form>
-
-        {/* Open Dashboard CTA */}
+        {/* Start Analysis CTA */}
         {hasUploads && (
           <button
             onClick={() => router.push("/dashboard")}
-            className="w-full flex items-center justify-center gap-3 py-4 bg-primary text-white font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95"
+            className="w-full flex items-center justify-center gap-3 py-4 bg-gradient-to-r from-primary to-blue-600 text-white font-black text-sm uppercase tracking-widest rounded-2xl hover:from-primary/90 hover:to-blue-600/90 transition-all shadow-lg shadow-primary/20 active:scale-95 mb-6"
           >
-            Open Dashboard
+            <Sparkles className="w-4 h-4" />
+            Start Analysis
             <ArrowRight className="w-4 h-4" />
           </button>
         )}
+
+        {/* Trust line */}
+        <div className="flex items-start gap-2.5 pt-4 border-t border-neutral-100">
+          <Lock className="w-4 h-4 text-neutral-300 shrink-0 mt-0.5" />
+          <p className="text-xs text-neutral-400 leading-relaxed">
+            <span className="font-semibold text-neutral-500">Your data is never stored.</span>{" "}
+            We process your data temporarily in your session and don't store it permanently.
+          </p>
+        </div>
       </div>
     </div>
   );

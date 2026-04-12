@@ -31,15 +31,6 @@ export default function UploadPage() {
           {backPath === "/dashboard" ? "Back to dashboard" : "Back to home"}
         </button>
 
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold text-neutral-900 tracking-tight mb-3">
-            Upload your data
-          </h1>
-          <p className="text-neutral-500 text-lg">
-            Drop in your CSV files and let AI connect them automatically.
-          </p>
-        </div>
-
         <UploadZone />
       </div>
     </main>

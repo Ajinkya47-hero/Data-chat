@@ -212,7 +212,7 @@ export default function AutoInsightsPanel({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-[2.5rem] shadow-2xl border border-neutral-100 flex flex-col overflow-hidden"
+        className="relative w-full max-w-2xl max-h-[95vh] md:max-h-[90vh] bg-white rounded-2xl md:rounded-[2.5rem] shadow-2xl border border-neutral-100 flex flex-col overflow-hidden mx-2 md:mx-auto"
         style={{ animation: "slideUp 0.25s ease-out" }}
       >
         {/* Header */}

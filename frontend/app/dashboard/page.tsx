@@ -10,6 +10,7 @@ import {
   Home, BarChart2, Layers, Sparkles, GitFork, Plus, Share2,
   Copy, Check, X, Link2, Pencil, Trash2, Database,
   ChevronRight, ChevronLeft, Loader2, MoreHorizontal,
+  Menu, MessageSquare,
 } from "lucide-react";
 import AutoInsightsPanel from "@/components/AutoInsightsPanel";
 import SchemaMap from "@/components/SchemaMap";
@@ -59,6 +60,10 @@ export default function Dashboard() {
 
   // Sidebar collapse
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Mobile state
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<"chat" | "data">("chat");
 
   // Prevent the activeAnalysisId useEffect from re-fetching after creating a fresh analysis
   const skipNextFetchRef = useRef(false);
@@ -182,6 +187,7 @@ export default function Dashboard() {
     setSwitchingId(id);
     setActiveAnalysisId(id);
     setOpenMenuId(null);
+    setMobileDrawerOpen(false);
     trackSwitchAnalysis({ analysis_id: id });
   };
 
@@ -278,10 +284,23 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-neutral-50 overflow-hidden">
 
+      {/* ── Mobile drawer backdrop ── */}
+      {mobileDrawerOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden"
+          onClick={() => setMobileDrawerOpen(false)}
+        />
+      )}
+
       {/* ════════════════════════════════════════════════════════════════════
           LEFT SIDEBAR — Analysis navigation (collapsible)
+          Hidden on mobile; shown as slide-in drawer when mobileDrawerOpen
       ════════════════════════════════════════════════════════════════════ */}
-      <aside className={`shrink-0 flex flex-col bg-white border-r border-neutral-100 h-full transition-all duration-200 ${sidebarCollapsed ? "w-14" : "w-56"}`}>
+      <aside className={`shrink-0 flex flex-col bg-white border-r border-neutral-100 h-full transition-all duration-200
+        ${sidebarCollapsed ? "w-14" : "w-56"}
+        fixed z-50 md:relative md:z-auto
+        ${mobileDrawerOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0
+      `}>
 
         {/* Logo + collapse toggle */}
         {sidebarCollapsed ? (
@@ -482,12 +501,33 @@ export default function Dashboard() {
       {/* ════════════════════════════════════════════════════════════════════
           MAIN CONTENT AREA
       ════════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col flex-1 min-w-0 h-full p-4 lg:p-5 gap-4 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 h-full p-2 md:p-4 lg:p-5 gap-2 md:gap-4 overflow-hidden">
 
-        {/* ── Top header bar ── */}
-        <header className="shrink-0 flex items-center justify-between px-1">
+        {/* ── Mobile header (hamburger + name + actions) ── */}
+        <header className="shrink-0 flex items-center justify-between px-1 md:hidden">
+          <button
+            onClick={() => setMobileDrawerOpen(true)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-neutral-100 text-neutral-600 transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex-1 text-center min-w-0 px-2">
+            <h1 className="text-sm font-black tracking-tight text-neutral-900 truncate">
+              {analyses.find((a) => a.id === activeAnalysisId)?.name ?? ""}
+            </h1>
+          </div>
+          <button
+            onClick={() => handleShareAnalysis(activeAnalysisId)}
+            disabled={!activeAnalysisId}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-emerald-200 text-emerald-600 disabled:opacity-40 transition-all active:scale-95"
+          >
+            <Share2 className="w-4 h-4" />
+          </button>
+        </header>
+
+        {/* ── Desktop header bar ── */}
+        <header className="shrink-0 hidden md:flex items-center justify-between px-1">
           <div className="flex items-center gap-3">
-            {/* Active analysis name */}
             <div>
               <h1 className="text-xl font-black tracking-tight text-neutral-900 leading-none">
                 {analyses.find((a) => a.id === activeAnalysisId)?.name ?? ""}
@@ -530,10 +570,12 @@ export default function Dashboard() {
         </header>
 
         {/* ── Main layout: left panel + chat ── */}
-        <div className="flex flex-1 gap-5 min-h-0">
+        <div className="flex flex-1 gap-2 md:gap-5 min-h-0">
 
-          {/* ── Left panel ── */}
-          <aside className="w-[340px] shrink-0 bg-white rounded-[2rem] shadow-[0_8px_30px_-8px_rgba(0,0,0,0.08)] border border-neutral-100 flex flex-col overflow-hidden">
+          {/* ── Left panel (hidden on mobile when viewing chat) ── */}
+          <aside className={`md:w-[340px] shrink-0 bg-white rounded-2xl md:rounded-[2rem] shadow-[0_8px_30px_-8px_rgba(0,0,0,0.08)] border border-neutral-100 flex flex-col overflow-hidden
+            ${mobileView === "data" ? "flex-1 md:flex-none" : "hidden md:flex"}
+          `}>
 
             {/* Panel tab switcher */}
             <div className="shrink-0 flex border-b border-neutral-100 px-3 pt-2 gap-0.5">
@@ -625,8 +667,10 @@ export default function Dashboard() {
             )}
           </aside>
 
-          {/* ── Chat panel ── */}
-          <main className="flex-1 bg-white rounded-[2rem] shadow-[0_8px_30px_-8px_rgba(0,0,0,0.08)] border border-neutral-100 flex flex-col overflow-hidden relative">
+          {/* ── Chat panel (hidden on mobile when viewing data) ── */}
+          <main className={`flex-1 bg-white rounded-2xl md:rounded-[2rem] shadow-[0_8px_30px_-8px_rgba(0,0,0,0.08)] border border-neutral-100 flex flex-col overflow-hidden relative
+            ${mobileView === "chat" ? "flex" : "hidden md:flex"}
+          `}>
             {/* Switching overlay */}
             {switchingId && (
               <div className="absolute inset-0 z-20 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
@@ -649,6 +693,43 @@ export default function Dashboard() {
               initialMessages={restoredMessages}
             />
           </main>
+        </div>
+
+        {/* ── Mobile bottom tab bar ── */}
+        <div className="shrink-0 flex md:hidden bg-white border-t border-neutral-100 rounded-t-2xl shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.06)]">
+          <button
+            onClick={() => setMobileView("chat")}
+            className={`flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors ${
+              mobileView === "chat" ? "text-primary" : "text-neutral-400"
+            }`}
+          >
+            <MessageSquare className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Chat</span>
+          </button>
+          <button
+            onClick={() => setMobileView("data")}
+            className={`flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors ${
+              mobileView === "data" ? "text-primary" : "text-neutral-400"
+            }`}
+          >
+            <Layers className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Data</span>
+          </button>
+          <button
+            onClick={() => setInsightsOpen(true)}
+            disabled={!primaryDataset}
+            className="flex-1 flex flex-col items-center gap-1 py-2.5 text-neutral-400 disabled:opacity-40 transition-colors"
+          >
+            <Sparkles className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Insights</span>
+          </button>
+          <button
+            onClick={() => setAddDatasetOpen(true)}
+            className="flex-1 flex flex-col items-center gap-1 py-2.5 text-neutral-400 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="text-[10px] font-bold">Add</span>
+          </button>
         </div>
       </div>
 
