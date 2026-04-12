@@ -12,6 +12,8 @@ interface UploadedEntry {
   name: string;
   row_count: number;
   column_count: number;
+  columns: string[];
+  size_mb?: number;
 }
 
 interface AddDatasetModalProps {
