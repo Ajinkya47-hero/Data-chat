@@ -10,11 +10,12 @@ from routers import upload, preview, chat, insights, workspace, analysis
 
 app = FastAPI(title="DataChat MVP API")
 
-# CORS: allow frontend origins (localhost for dev, production domain for deploy)
+# CORS: allow frontend origins (localhost for dev, Vercel for production)
 _cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
