@@ -151,12 +151,15 @@ async def upload_csv(
     except ValueError as e:
         raise HTTPException(409, str(e))
 
-    posthog.capture(distinct_id=wid, event="upload_dataset", properties={
-        "dataset_name": dataset_name,
-        "number_of_rows": len(df),
-        "number_of_columns": len(df.columns),
-        "source": "csv",
-    })
+    try:
+        posthog.capture(distinct_id=wid, event="upload_dataset", properties={
+            "dataset_name": dataset_name,
+            "number_of_rows": len(df),
+            "number_of_columns": len(df.columns),
+            "source": "csv",
+        })
+    except Exception:
+        pass
 
     return _build_response(wid, aid, aname, dataset_name)
 
@@ -197,11 +200,14 @@ async def upload_gsheet(
     except ValueError as e:
         raise HTTPException(409, str(e))
 
-    posthog.capture(distinct_id=wid, event="upload_dataset", properties={
-        "dataset_name": dataset_name,
-        "number_of_rows": len(df),
-        "number_of_columns": len(df.columns),
-        "source": "gsheet",
-    })
+    try:
+        posthog.capture(distinct_id=wid, event="upload_dataset", properties={
+            "dataset_name": dataset_name,
+            "number_of_rows": len(df),
+            "number_of_columns": len(df.columns),
+            "source": "gsheet",
+        })
+    except Exception:
+        pass
 
     return _build_response(wid, aid, aname, dataset_name)
