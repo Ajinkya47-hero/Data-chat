@@ -337,13 +337,13 @@ async def generate_final_answer(
 # ── Fallback config ────────────────────────────────────────────────────────────
 
 # Ordered fallback models tried when the primary model fails.
-# Strategy: verified active models across Gemini, Groq, and OpenRouter
+# Only Groq and OpenRouter models
 _FALLBACK_CHAIN = [
-    "gemini-3.1-flash-lite",                 # Google: ultra-fast, active & reliable
-    "gemini-3-flash-preview",                # Google: flash preview, active
-    "openai/gpt-oss-120b",                  # Groq: high capability, active
+    "openai/gpt-oss-120b",                  # Groq: most powerful, active
     "openai/gpt-oss-20b",                   # Groq: ultra-fast, active
-    "nvidia/nemotron-3.5-lightning:free",    # OpenRouter: free tier, active
+    "qwen/qwen3.8-27b",                     # Groq: Alibaba, active
+    "nvidia/nemotron-3.5-lightning:free",    # OpenRouter: NVIDIA free tier, active
+    "liquid/lfm-2.5-2.6b:free",             # OpenRouter: Liquid AI free tier, active
 ]
 
 
@@ -361,15 +361,15 @@ def _strip_history(messages: list[dict]) -> list[dict]:
 async def _dispatch(messages: list[dict], model: str) -> dict:
     """Route to the right provider.  Does NOT acquire the rate-limiter slot
     (caller must have already done that)."""
-    if model.startswith("gemini"):
-        return await call_gemini(messages, model=model)
-    elif model in GROQ_MODELS:
+    if model in GROQ_MODELS:
         return await call_groq(messages, model=model)
+    elif model.startswith("gemini"):
+        return await call_gemini(messages, model=model)
     else:
         return await call_openrouter(messages, model=model)
 
 
-async def call_llm(messages: list[dict], model: str = "gemini-3.8-flash") -> dict:
+async def call_llm(messages: list[dict], model: str = "openai/gpt-oss-120b") -> dict:
     """Call an LLM with a multi-model fallback chain.
 
     1. Try the requested model with the full prompt.

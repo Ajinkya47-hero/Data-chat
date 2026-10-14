@@ -105,7 +105,7 @@ export const analyzeData = async (
   workspaceId: string,
   analysisId: string,
   dataset: string,
-  model: string = "gemini-3.8-flash",
+  model: string = "openai/gpt-oss-120b",
   extraDatasets: string[] = []
 ) =>
   api.post("/insights/analyze", {
@@ -124,7 +124,7 @@ export const sendChatQuery = async (
   dataset: string,
   question: string,
   history: Array<{ role: string; content: string }>,
-  model: string = "gemini-3.8-flash",
+  model: string = "openai/gpt-oss-120b",
   extraDatasets: string[] = []
 ) =>
   api.post("/chat/query", {

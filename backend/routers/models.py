@@ -17,31 +17,6 @@ router = APIRouter()
 
 MODEL_REGISTRY = [
     {
-        "provider": "Gemini",
-        "color": "blue",
-        "env_key": "GEMINI_API_KEY",
-        "models": [
-            {
-                "id": "gemini-3.8-flash",
-                "label": "Gemini 3.8 Flash",
-                "note": "Latest & flagship",
-                "tier": "best",
-            },
-            {
-                "id": "gemini-3.1-flash-lite",
-                "label": "Gemini 3.1 Flash Lite",
-                "note": "Ultra fast & free",
-                "tier": "recommended",
-            },
-            {
-                "id": "gemini-3-flash-preview",
-                "label": "Gemini 3 Flash",
-                "note": "Preview",
-                "tier": "standard",
-            },
-        ],
-    },
-    {
         "provider": "Groq",
         "color": "orange",
         "env_key": "GROQ_API_KEY",

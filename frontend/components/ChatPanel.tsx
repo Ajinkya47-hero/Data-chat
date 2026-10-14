@@ -18,12 +18,11 @@ const TIER_BADGE: Record<string, { label: string; cls: string }> = {
 
 // Provider dot colour fallback map (used before fetch resolves)
 const PROVIDER_COLORS: Record<string, string> = {
-  Gemini:     "bg-blue-500",
   Groq:       "bg-orange-500",
   OpenRouter: "bg-violet-500",
 };
 
-const DEFAULT_MODEL = "gemini-3.8-flash";
+const DEFAULT_MODEL = "openai/gpt-oss-120b";
 const QUOTA_KEY = "datachat_quota_exceeded";
 
 function loadQuotaState(): Record<string, number> {
@@ -90,10 +89,18 @@ export default function ChatPanel({
         // Fallback static list if backend unreachable
         setProviders([
           {
-            provider: "Gemini", color: "blue", connected: true,
+            provider: "Groq", color: "orange", connected: true,
             models: [
-              { id: "gemini-3.8-flash", label: "Gemini 3.8 Flash", note: "Latest & flagship", tier: "best" },
-              { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite", note: "Ultra fast & free", tier: "recommended" },
+              { id: "openai/gpt-oss-120b", label: "GPT-OSS 120B", note: "Most powerful", tier: "best" },
+              { id: "openai/gpt-oss-20b", label: "GPT-OSS 20B", note: "Ultra fast", tier: "recommended" },
+              { id: "qwen/qwen3.8-27b", label: "Qwen 3.8 27B", note: "Alibaba", tier: "standard" },
+            ],
+          },
+          {
+            provider: "OpenRouter", color: "violet", connected: true,
+            models: [
+              { id: "nvidia/nemotron-3.5-lightning:free", label: "Nemotron 3.5 Lightning", note: "NVIDIA · Free", tier: "recommended" },
+              { id: "liquid/lfm-2.5-2.6b:free", label: "Liquid LFM 2.5", note: "Liquid AI · Free", tier: "standard" },
             ],
           },
         ]);

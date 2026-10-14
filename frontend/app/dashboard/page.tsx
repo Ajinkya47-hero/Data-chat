@@ -44,7 +44,7 @@ export default function Dashboard() {
   const [panelView, setPanelView] = useState<PanelView>("preview");
   const [insightsOpen, setInsightsOpen] = useState(false);
   const [addDatasetOpen, setAddDatasetOpen] = useState(false);
-  const [chatModel, setChatModel] = useState("gemini-3.8-flash");
+  const [chatModel, setChatModel] = useState("openai/gpt-oss-120b");
   const [externalQuestion, setExternalQuestion] = useState<string | null>(null);
   // Per-analysis share modal — stores the analysis id being shared (null = closed)
   const [shareAnalysisId, setShareAnalysisId] = useState<string | null>(null);

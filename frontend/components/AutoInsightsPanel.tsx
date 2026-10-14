@@ -125,7 +125,7 @@ export default function AutoInsightsPanel({
 }: AutoInsightsPanelProps) {
   const hasCached = (cachedInsights?.length ?? 0) > 0;
   const [insights, setInsights] = useState<InsightItem[]>(cachedInsights ?? []);
-  const [activeModel, setActiveModel] = useState(model || "gemini-3.8-flash");
+  const [activeModel, setActiveModel] = useState(model || "openai/gpt-oss-120b");
   const [providers, setProviders] = useState<ProviderGroup[]>([]);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -303,15 +303,26 @@ export default function AutoInsightsPanel({
                     ⚡ Try GPT-OSS 120B (Groq)
                   </button>
                 )}
-                {activeModel !== "gemini-3.1-flash-lite" && (
+                {activeModel !== "openai/gpt-oss-20b" && (
                   <button
                     onClick={() => {
-                      setActiveModel("gemini-3.1-flash-lite");
-                      run("gemini-3.1-flash-lite");
+                      setActiveModel("openai/gpt-oss-20b");
+                      run("openai/gpt-oss-20b");
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-2xl transition-colors"
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 text-xs font-bold rounded-2xl transition-colors"
                   >
-                    ⚡ Try Gemini 3.1 Flash Lite
+                    ⚡ Try GPT-OSS 20B (Groq)
+                  </button>
+                )}
+                {activeModel !== "nvidia/nemotron-3.5-lightning:free" && (
+                  <button
+                    onClick={() => {
+                      setActiveModel("nvidia/nemotron-3.5-lightning:free");
+                      run("nvidia/nemotron-3.5-lightning:free");
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-violet-50 hover:bg-violet-100 text-violet-700 border border-violet-200 text-xs font-bold rounded-2xl transition-colors"
+                  >
+                    ⚡ Try Nemotron (OpenRouter)
                   </button>
                 )}
               </div>
