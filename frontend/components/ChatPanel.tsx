@@ -3,59 +3,27 @@
 import { useState, useRef, useEffect } from "react";
 import ChatInput from "./ChatInput";
 import InsightCard from "./InsightCard";
-import { sendChatQuery } from "@/lib/api";
+import { sendChatQuery, fetchModels } from "@/lib/api";
+import type { ProviderGroup, ModelDef } from "@/lib/api";
 import { ChevronDown } from "lucide-react";
 import { trackAskQuestion, trackChatResponse, trackChatError } from "@/lib/analytics";
 
-// ── Model registry ─────────────────────────────────────────────────────────
+// ── Tier badge config ───────────────────────────────────────────────────────
+const TIER_BADGE: Record<string, { label: string; cls: string }> = {
+  best:        { label: "Best",      cls: "bg-amber-100 text-amber-700" },
+  recommended: { label: "⭐",        cls: "bg-emerald-50 text-emerald-600" },
+  standard:    { label: "",          cls: "" },
+  fast:        { label: "Fast",      cls: "bg-sky-100 text-sky-600" },
+};
 
-type Provider = "Gemini" | "Groq" | "OpenRouter";
+// Provider dot colour fallback map (used before fetch resolves)
+const PROVIDER_COLORS: Record<string, string> = {
+  Gemini:     "bg-blue-500",
+  Groq:       "bg-orange-500",
+  OpenRouter: "bg-violet-500",
+};
 
-interface ModelDef {
-  id: string;
-  label: string;
-  provider: Provider;
-  note?: string;
-}
-
-const MODEL_GROUPS: { provider: Provider; color: string; models: ModelDef[] }[] = [
-  {
-    provider: "Gemini",
-    color: "bg-blue-500",
-    models: [
-      { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "Gemini", note: "Fast & free" },
-      { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash", provider: "Gemini", note: "Free tier" },
-    ],
-  },
-  {
-    provider: "Groq",
-    color: "bg-orange-500",
-    models: [
-      { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B", provider: "Groq", note: "Recommended" },
-      { id: "meta-llama/llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B", provider: "Groq", note: "Latest" },
-      { id: "llama-3.1-8b-instant", label: "Llama 3.1 8B", provider: "Groq", note: "Very fast" },
-      { id: "moonshotai/kimi-k2-instruct", label: "Kimi K2", provider: "Groq", note: "Moonshot AI" },
-      { id: "qwen/qwen3-32b", label: "Qwen3 32B", provider: "Groq", note: "Alibaba" },
-      { id: "groq/compound", label: "Compound", provider: "Groq", note: "Groq native" },
-    ],
-  },
-  {
-    provider: "OpenRouter",
-    color: "bg-violet-500",
-    models: [
-      { id: "openai/gpt-oss-120b:free", label: "GPT-OSS 120B", provider: "OpenRouter", note: "Powerful" },
-      { id: "google/gemma-3-12b-it:free", label: "Gemma 3 12B", provider: "OpenRouter", note: "Fast" },
-      { id: "google/gemma-3-4b-it:free", label: "Gemma 3 4B", provider: "OpenRouter", note: "Light" },
-      { id: "nvidia/nemotron-3-nano-30b-a3b:free", label: "Nemotron 30B", provider: "OpenRouter", note: "NVIDIA" },
-      { id: "nvidia/nemotron-nano-9b-v2:free", label: "Nemotron 9B", provider: "OpenRouter", note: "NVIDIA" },
-      { id: "minimax/minimax-m2.5:free", label: "MiniMax M2.5", provider: "OpenRouter", note: "Large" },
-      { id: "liquid/lfm-2.5-1.2b-instruct:free", label: "LFM 1.2B", provider: "OpenRouter", note: "Tiny" },
-      { id: "arcee-ai/trinity-large-preview:free", label: "Trinity Large", provider: "OpenRouter", note: "Free" },
-    ],
-  },
-];
-
-const ALL_MODELS: ModelDef[] = MODEL_GROUPS.flatMap((g) => g.models);
+const DEFAULT_MODEL = "gemini-2.0-flash";
 const QUOTA_KEY = "datachat_quota_exceeded";
 
 function loadQuotaState(): Record<string, number> {
@@ -68,10 +36,9 @@ function saveQuotaState(state: Record<string, number>) {
 function isQuotaExceeded(modelId: string, quotaState: Record<string, number>): boolean {
   const ts = quotaState[modelId];
   if (!ts) return false;
-  return Date.now() - ts < 60 * 60 * 1000;
+  return Date.now() - ts < 60 * 60 * 1000; // 1 hour
 }
 
-// ── Types ──────────────────────────────────────────────────────────────────
 
 type Message = {
   id: string;
@@ -112,9 +79,28 @@ export default function ChatPanel({
     { id: "welcome", role: "assistant", content: "I've analyzed your data. What would you like to know?" },
   ]);
 
+  // Dynamic model registry from backend
+  const [providers, setProviders] = useState<ProviderGroup[]>([]);
+  const allModels: ModelDef[] = providers.flatMap((g) => g.models);
+
+  useEffect(() => {
+    fetchModels()
+      .then(setProviders)
+      .catch(() => {
+        // Fallback static list if backend unreachable
+        setProviders([
+          {
+            provider: "Gemini", color: "blue", connected: true,
+            models: [
+              { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", note: "Fast & free", tier: "recommended" },
+              { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash", note: "Free tier", tier: "standard" },
+            ],
+          },
+        ]);
+      });
+  }, []);
+
   // Apply chat history when the parent's async fetch delivers it.
-  // This runs after mount, so it correctly handles the case where
-  // initialMessages arrives after ChatPanel already rendered.
   useEffect(() => {
     if (initialMessages && initialMessages.length > 0) {
       setMessages(initialMessages);
@@ -208,7 +194,7 @@ export default function ChatPanel({
           {
             id: (Date.now() + 1).toString(),
             role: "assistant",
-            content: `Quota exceeded for **${ALL_MODELS.find((m) => m.id === model)?.label ?? model}**. Please select a different model.`,
+            content: `Quota exceeded for **${allModels.find((m: ModelDef) => m.id === model)?.label ?? model}**. Please select a different model.`,
             isError: true,
           },
         ]);
@@ -218,7 +204,7 @@ export default function ChatPanel({
           {
             id: (Date.now() + 1).toString(),
             role: "assistant",
-            content: `**${ALL_MODELS.find((m) => m.id === model)?.label ?? model}** is temporarily busy. Please try again or switch models.`,
+            content: `**${allModels.find((m: ModelDef) => m.id === model)?.label ?? model}** is temporarily busy. Please try again or switch models.`,
             isError: true,
           },
         ]);
@@ -233,7 +219,7 @@ export default function ChatPanel({
         // Show a friendly message — never expose raw API internals
         const isAllExhausted = typeof detail === "string" && detail.toLowerCase().includes("all model fallbacks exhausted");
         if (isAllExhausted) markQuotaExceeded(model);
-        const modelName = ALL_MODELS.find((m) => m.id === model)?.label ?? model;
+        const modelName = allModels.find((m: ModelDef) => m.id === model)?.label ?? model;
         const friendlyMsg = isAllExhausted
           ? `**${modelName}** is currently unavailable. Please switch to a different model.`
           : "Sorry, something went wrong. Please try again or switch to a different model.";
@@ -253,8 +239,9 @@ export default function ChatPanel({
     }
   };
 
-  const currentModelDef = ALL_MODELS.find((m) => m.id === model);
-  const currentGroup = MODEL_GROUPS.find((g) => g.provider === currentModelDef?.provider);
+  const currentModelDef = allModels.find((m: ModelDef) => m.id === model);
+  const currentGroup = providers.find((g) => g.models.some((m) => m.id === model));
+  const currentDotColor = PROVIDER_COLORS[currentGroup?.provider ?? ""] ?? "bg-gray-400";
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -270,9 +257,9 @@ export default function ChatPanel({
             onClick={() => setDropdownOpen((o) => !o)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-2xl border border-neutral-200 bg-white hover:border-neutral-300 transition-all text-sm font-semibold text-neutral-700 shadow-sm"
           >
-            <span className={`w-2 h-2 rounded-full ${currentGroup?.color ?? "bg-gray-400"}`} />
+            <span className={`w-2 h-2 rounded-full ${currentDotColor}`} />
             {currentModelDef?.label ?? model}
-            <span className="text-[10px] text-neutral-400 font-normal">{currentModelDef?.provider}</span>
+            <span className="text-[10px] text-neutral-400 font-normal">{currentGroup?.provider}</span>
             {isQuotaExceeded(model, quotaState) && (
               <span className="text-[10px] bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded-full">QUOTA</span>
             )}
@@ -280,39 +267,50 @@ export default function ChatPanel({
           </button>
 
           {dropdownOpen && (
-            <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl border border-neutral-200 shadow-xl overflow-hidden z-50">
-              {MODEL_GROUPS.map((group) => (
+            <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-2xl border border-neutral-200 shadow-xl overflow-hidden z-50">
+              {providers.length === 0 && (
+                <div className="px-4 py-6 text-center text-sm text-neutral-400">Loading models…</div>
+              )}
+              {providers.map((group) => (
                 <div key={group.provider}>
                   <div className="flex items-center gap-2 px-4 py-2 bg-neutral-50 border-b border-neutral-100">
-                    <span className={`w-2 h-2 rounded-full ${group.color}`} />
+                    <span className={`w-2 h-2 rounded-full ${PROVIDER_COLORS[group.provider] ?? "bg-gray-400"}`} />
                     <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">{group.provider}</span>
-                    <span className="ml-auto text-[9px] text-emerald-500">● connected</span>
+                    <span className={`ml-auto text-[9px] font-semibold ${group.connected ? "text-emerald-500" : "text-red-400"}`}>
+                      {group.connected ? "● connected" : "● no api key"}
+                    </span>
                   </div>
-                  {group.models.map((modelDef) => {
+                  {group.models.map((modelDef: ModelDef) => {
                     const exceeded = isQuotaExceeded(modelDef.id, quotaState);
                     const active = model === modelDef.id;
+                    const badge = TIER_BADGE[modelDef.tier ?? "standard"];
                     return (
                       <button
                         key={modelDef.id}
-                        disabled={exceeded}
-                        onClick={() => { if (!exceeded) { onModelChange(modelDef.id); setDropdownOpen(false); } }}
+                        disabled={exceeded || !group.connected}
+                        onClick={() => { if (!exceeded && group.connected) { onModelChange(modelDef.id); setDropdownOpen(false); } }}
                         className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
-                          exceeded
-                            ? "opacity-50 cursor-not-allowed bg-red-50/40"
+                          exceeded || !group.connected
+                            ? "opacity-40 cursor-not-allowed"
                             : active
                             ? "bg-primary/5 text-primary"
                             : "hover:bg-neutral-50 text-neutral-700"
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${exceeded ? "bg-red-400" : "bg-emerald-400"}`} />
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            exceeded ? "bg-red-400" : !group.connected ? "bg-neutral-300" : "bg-emerald-400"
+                          }`} />
                           <span className={`text-sm font-semibold ${exceeded ? "line-through text-neutral-400" : ""}`}>{modelDef.label}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {exceeded
-                            ? <span className="text-[9px] bg-red-100 text-red-500 font-bold px-1.5 py-0.5 rounded-full">QUOTA</span>
-                            : modelDef.note && <span className="text-[10px] text-neutral-400">{modelDef.note}</span>
-                          }
+                        <div className="flex items-center gap-1.5">
+                          {exceeded ? (
+                            <span className="text-[9px] bg-red-100 text-red-500 font-bold px-1.5 py-0.5 rounded-full">QUOTA</span>
+                          ) : badge?.label ? (
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
+                          ) : modelDef.note ? (
+                            <span className="text-[10px] text-neutral-400">{modelDef.note}</span>
+                          ) : null}
                         </div>
                       </button>
                     );

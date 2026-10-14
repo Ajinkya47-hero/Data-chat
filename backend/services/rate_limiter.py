@@ -117,5 +117,5 @@ class SessionThrottler:
 
 # ── Singletons ─────────────────────────────────────────────────────────────────
 # All LLM callers import and use these single instances.
-llm_rate_limiter = RateLimiter(max_calls=10, period=60.0)
+llm_rate_limiter = RateLimiter(max_calls=20, period=60.0)
 session_throttler = SessionThrottler()

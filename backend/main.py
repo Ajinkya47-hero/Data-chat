@@ -11,7 +11,7 @@ import posthog
 posthog.project_api_key = os.environ.get("POSTHOG_API_KEY")
 posthog.host = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
 
-from routers import upload, preview, chat, insights, workspace, analysis
+from routers import upload, preview, chat, insights, workspace, analysis, models
 
 app = FastAPI(title="DataChat MVP API")
 
@@ -30,6 +30,7 @@ app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(insights.router, prefix="/insights", tags=["insights"])
 app.include_router(workspace.router, prefix="/workspace", tags=["workspace"])
 app.include_router(analysis.router, prefix="/analysis", tags=["analysis"])
+app.include_router(models.router, prefix="/models", tags=["models"])
 
 @app.get("/health")
 def health():

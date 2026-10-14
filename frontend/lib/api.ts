@@ -136,3 +136,24 @@ export const sendChatQuery = async (
     history,
     model,
   });
+
+// ── Models ────────────────────────────────────────────────────────────────────
+
+export interface ModelDef {
+  id: string;
+  label: string;
+  note: string;
+  tier: "best" | "recommended" | "standard" | "fast";
+}
+
+export interface ProviderGroup {
+  provider: string;
+  color: string;
+  connected: boolean;
+  models: ModelDef[];
+}
+
+export const fetchModels = async (): Promise<ProviderGroup[]> => {
+  const res = await api.get("/models");
+  return res.data.providers as ProviderGroup[];
+};
