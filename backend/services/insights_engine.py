@@ -81,7 +81,7 @@ def _detect_column_types(df: pd.DataFrame) -> tuple[list[str], list[str], list[s
             # Probe string columns for parseable dates
             try:
                 sample = df[col].dropna().head(10)
-                parsed = pd.to_datetime(sample, infer_datetime_format=True, errors="coerce")
+                parsed = pd.to_datetime(sample, errors="coerce")
                 if len(sample) > 0 and parsed.notna().sum() / len(sample) >= 0.7:
                     date_cols.append(col)
                     continue

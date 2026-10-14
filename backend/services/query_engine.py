@@ -3,7 +3,6 @@ import json
 import re
 import os
 import httpx
-import google.generativeai as genai
 import pandas as pd
 
 from services.schema_builder import build_schema_context, filter_tables_for_query
@@ -108,21 +107,12 @@ Return ONLY this JSON object, nothing else:
 """
 
 # Models served by Groq (OpenAI-compatible, JSON mode supported)
-# Verified production IDs from https://console.groq.com/docs/models (Oct 2025)
+# Verified active IDs from Groq API
 GROQ_MODELS = {
-    # Meta Llama — production
-    "llama-3.1-8b-instant",
-    "llama-3.3-70b-versatile",
-    "meta-llama/llama-4-scout-17b-16e-instruct",
-    # Moonshot / Alibaba — preview
-    "moonshotai/kimi-k2-instruct",
-    "qwen/qwen3-32b",
-    # DeepSeek reasoning distills — production
-    "deepseek-r1-distill-llama-70b",
-    "deepseek-r1-distill-qwen-32b",
-    # OpenAI open-weight on Groq LPU — production
     "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
+    "allam-2-7b",
 }
 
 
@@ -138,50 +128,60 @@ def extract_json(text: str) -> str:
 
 # ── Gemini ────────────────────────────────────────────────────────────────────
 
-async def call_gemini(messages: list[dict], model: str = "gemini-2.0-flash", max_retries: int = 3) -> dict:
+async def call_gemini(messages: list[dict], model: str = "gemini-3.8-flash", max_retries: int = 3) -> dict:
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY not set")
 
-    genai.configure(api_key=api_key)
-
     system_instruction = None
-    conversation: list[dict] = []
+    contents: list[dict] = []
     for msg in messages:
         if msg["role"] == "system":
             system_instruction = msg["content"]
         else:
-            conversation.append(msg)
+            role = "model" if msg["role"] == "assistant" else "user"
+            contents.append({"role": role, "parts": [{"text": msg["content"]}]})
 
-    gemini_model = genai.GenerativeModel(
-        model_name=model,
-        system_instruction=system_instruction,
-        generation_config=genai.GenerationConfig(
-            response_mime_type="application/json",
-            temperature=0.0,
-        ),
-    )
+    if not contents:
+        contents.append({"role": "user", "parts": [{"text": "Continue"}]})
 
-    def to_gemini_history(msgs):
-        return [
-            {"role": "model" if m["role"] == "assistant" else "user", "parts": [m["content"]]}
-            for m in msgs
-        ]
+    payload = {
+        "contents": contents,
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.0,
+        },
+    }
+    if system_instruction:
+        payload["system_instruction"] = {"parts": [{"text": system_instruction}]}
 
-    history_msgs = to_gemini_history(conversation[:-1]) if len(conversation) > 1 else []
-    last_user_msg = conversation[-1]["content"] if conversation else ""
-    chat = gemini_model.start_chat(history=history_msgs)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
-    for attempt in range(max_retries):
-        prompt = last_user_msg if attempt == 0 else "You returned invalid JSON. Please fix it and return strictly valid JSON."
-        response = await chat.send_message_async(prompt)
-        raw_content = response.text
-        try:
-            return json.loads(extract_json(raw_content))
-        except json.JSONDecodeError:
-            if attempt < max_retries - 1:
-                continue
-            raise RuntimeError("Gemini failed to return valid JSON after retries")
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        for attempt in range(max_retries):
+            response = await client.post(url, json=payload)
+            if response.status_code == 429:
+                raise RuntimeError(f"QUOTA_EXCEEDED: {response.text}")
+            if response.status_code == 503:
+                raise RuntimeError(f"RATE_LIMITED: {response.text}")
+            if response.status_code != 200:
+                raise RuntimeError(f"Gemini error {response.status_code}: {response.text[:300]}")
+
+            data = response.json()
+            try:
+                candidates = data.get("candidates", [])
+                if not candidates:
+                    raise RuntimeError(f"Gemini returned no candidates: {data}")
+                raw_content = candidates[0]["content"]["parts"][0]["text"]
+                return json.loads(extract_json(raw_content))
+            except (KeyError, IndexError, json.JSONDecodeError) as e:
+                if attempt < max_retries - 1:
+                    payload["contents"].append({
+                        "role": "user",
+                        "parts": [{"text": "You returned invalid JSON. Return strictly valid JSON only."}],
+                    })
+                    continue
+                raise RuntimeError(f"Gemini failed to return valid JSON after retries: {e}")
 
 
 # ── OpenRouter ────────────────────────────────────────────────────────────────
@@ -337,12 +337,13 @@ async def generate_final_answer(
 # ── Fallback config ────────────────────────────────────────────────────────────
 
 # Ordered fallback models tried when the primary model fails.
-# Strategy: first try same-tier Gemini (free, reliable), then a capable OpenRouter free tier.
+# Strategy: verified active models across Gemini, Groq, and OpenRouter
 _FALLBACK_CHAIN = [
-    "gemini-2.0-flash",       # fastest free Gemini, strong JSON compliance
-    "gemini-1.5-flash",       # backup Gemini
-    "llama-3.3-70b-versatile", # Groq production fallback — excellent quality
-    "meta-llama/llama-3.3-70b-instruct:free",  # OpenRouter free last resort
+    "gemini-3.1-flash-lite",                 # Google: ultra-fast, active & reliable
+    "gemini-3-flash-preview",                # Google: flash preview, active
+    "openai/gpt-oss-120b",                  # Groq: high capability, active
+    "openai/gpt-oss-20b",                   # Groq: ultra-fast, active
+    "nvidia/nemotron-3.5-lightning:free",    # OpenRouter: free tier, active
 ]
 
 
@@ -368,7 +369,7 @@ async def _dispatch(messages: list[dict], model: str) -> dict:
         return await call_openrouter(messages, model=model)
 
 
-async def call_llm(messages: list[dict], model: str = "gemini-2.0-flash") -> dict:
+async def call_llm(messages: list[dict], model: str = "gemini-3.8-flash") -> dict:
     """Call an LLM with a multi-model fallback chain.
 
     1. Try the requested model with the full prompt.

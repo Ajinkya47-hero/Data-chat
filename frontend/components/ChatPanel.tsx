@@ -23,7 +23,7 @@ const PROVIDER_COLORS: Record<string, string> = {
   OpenRouter: "bg-violet-500",
 };
 
-const DEFAULT_MODEL = "gemini-2.0-flash";
+const DEFAULT_MODEL = "gemini-3.8-flash";
 const QUOTA_KEY = "datachat_quota_exceeded";
 
 function loadQuotaState(): Record<string, number> {
@@ -92,8 +92,8 @@ export default function ChatPanel({
           {
             provider: "Gemini", color: "blue", connected: true,
             models: [
-              { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", note: "Fast & free", tier: "recommended" },
-              { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash", note: "Free tier", tier: "standard" },
+              { id: "gemini-3.8-flash", label: "Gemini 3.8 Flash", note: "Latest & flagship", tier: "best" },
+              { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite", note: "Ultra fast & free", tier: "recommended" },
             ],
           },
         ]);

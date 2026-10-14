@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { analyzeData } from "@/lib/api";
-import { Sparkles, X, RefreshCw, AlertCircle, MessageSquare, Copy, Check } from "lucide-react";
+import { analyzeData, fetchModels, ProviderGroup, ModelDef } from "@/lib/api";
+import { Sparkles, X, RefreshCw, AlertCircle, MessageSquare, Copy, Check, ChevronDown } from "lucide-react";
 import { trackInsightGenerated } from "@/lib/analytics";
 
 interface InsightItem {
@@ -125,12 +125,19 @@ export default function AutoInsightsPanel({
 }: AutoInsightsPanelProps) {
   const hasCached = (cachedInsights?.length ?? 0) > 0;
   const [insights, setInsights] = useState<InsightItem[]>(cachedInsights ?? []);
+  const [activeModel, setActiveModel] = useState(model || "gemini-3.8-flash");
+  const [providers, setProviders] = useState<ProviderGroup[]>([]);
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [throttled, setThrottled] = useState(false);
   const [ran, setRan] = useState(hasCached);
   const [currentStep, setCurrentStep] = useState(0);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetchModels().then(setProviders).catch(() => {});
+  }, []);
 
   // Animate step progression while loading
   useEffect(() => {
@@ -148,13 +155,14 @@ export default function AutoInsightsPanel({
     return () => clearInterval(interval);
   }, [loading]);
 
-  const run = async () => {
+  const run = async (modelToUse?: string) => {
+    const targetModel = modelToUse ?? activeModel;
     setLoading(true);
     setError(null);
     setInsights([]);
     const startTime = Date.now();
     try {
-      const res = await analyzeData(workspaceId, analysisId, dataset, model, selectedDatasets);
+      const res = await analyzeData(workspaceId, analysisId, dataset, targetModel, selectedDatasets);
       const items: InsightItem[] = res.data.insights ?? [];
       setInsights(items);
       if (res.data.throttled) setThrottled(true);
@@ -175,11 +183,11 @@ export default function AutoInsightsPanel({
       const isBusy = err?.response?.status === 503;
 
       const msg = isAllExhausted
-        ? "All AI models are currently unavailable. Please wait a minute and try again, or switch to a different model."
+        ? "AI models are currently unavailable. You can try another model below or try again in a moment."
         : isQuota
         ? "Model quota exceeded. Please switch to a different model and try again."
         : isBusy
-        ? "The model is temporarily busy. Please try again in a moment."
+        ? "The model is temporarily busy. Please try again or choose another provider below."
         : "Something went wrong. Please try again.";
       setError(msg);
     } finally {
@@ -187,10 +195,12 @@ export default function AutoInsightsPanel({
     }
   };
 
-  // Auto-run only when there are no cached insights
-  if (!ran && !loading && !error) {
-    run();
-  }
+  // Auto-run on mount if no cached insights
+  useEffect(() => {
+    if (!ran && !loading && !error) {
+      run(activeModel);
+    }
+  }, []);
 
   const handleCopyAll = () => {
     const text = insights
@@ -207,7 +217,9 @@ export default function AutoInsightsPanel({
     onAskInChat(`Tell me more about this insight: "${insight.title}". ${insight.body}`);
   };
 
-  const modelLabel = model.split("/").pop()?.replace(/-/g, " ") ?? model;
+  const allModels: ModelDef[] = providers.flatMap((g) => g.models);
+  const activeModelDef = allModels.find((m) => m.id === activeModel);
+  const modelLabel = activeModelDef?.label ?? activeModel.split("/").pop()?.replace(/-/g, " ") ?? activeModel;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
@@ -223,16 +235,22 @@ export default function AutoInsightsPanel({
             </div>
             <div>
               <h2 className="text-lg font-black text-neutral-900 tracking-tight">Auto Insights</h2>
-              <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-widest">
-                {dataset}
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-widest">
+                  {dataset}
+                </span>
+                <span className="text-neutral-300">·</span>
+                <span className="text-[11px] font-medium text-violet-600 bg-violet-50 px-2 py-0.5 rounded-md">
+                  {modelLabel}
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             {ran && !loading && insights.length > 0 && (
               <button
-                onClick={run}
+                onClick={() => run(activeModel)}
                 className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-neutral-500 hover:text-violet-600 bg-neutral-50 hover:bg-violet-50 border border-neutral-200 hover:border-violet-200 rounded-xl transition-all"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -256,21 +274,47 @@ export default function AutoInsightsPanel({
 
           {/* Error */}
           {!loading && error && (
-            <div className="flex flex-col items-center gap-4 py-10">
+            <div className="flex flex-col items-center gap-4 py-8 text-center">
               <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
                 <AlertCircle className="w-6 h-6 text-red-500" />
               </div>
-              <div className="text-center max-w-sm">
+              <div className="max-w-md">
                 <p className="text-sm font-bold text-neutral-800 mb-1">Analysis failed</p>
                 <p className="text-xs text-neutral-500">{error}</p>
               </div>
-              <button
-                onClick={run}
-                className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white text-sm font-bold rounded-2xl hover:bg-violet-700 transition-colors shadow-lg shadow-violet-200"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Try again
-              </button>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+                <button
+                  onClick={() => run(activeModel)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white text-sm font-bold rounded-2xl hover:bg-violet-700 transition-colors shadow-lg shadow-violet-200"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Try again
+                </button>
+                {activeModel !== "openai/gpt-oss-120b" && (
+                  <button
+                    onClick={() => {
+                      setActiveModel("openai/gpt-oss-120b");
+                      run("openai/gpt-oss-120b");
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 text-xs font-bold rounded-2xl transition-colors"
+                  >
+                    ⚡ Try GPT-OSS 120B (Groq)
+                  </button>
+                )}
+                {activeModel !== "gemini-3.1-flash-lite" && (
+                  <button
+                    onClick={() => {
+                      setActiveModel("gemini-3.1-flash-lite");
+                      run("gemini-3.1-flash-lite");
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-2xl transition-colors"
+                  >
+                    ⚡ Try Gemini 3.1 Flash Lite
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
